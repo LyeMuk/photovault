@@ -36,8 +36,9 @@ jobs:
 
   # docs/CONTEXT.md §17.4: GitHub Pages needs Pages enabled for this repo (Settings →
   # Pages → Source: GitHub Actions), and private-repo Pages needs GitHub Pro/Team/
-  # Enterprise. If that's unavailable on the account's plan, switch this job to
-  # deploy to Vercel or Netlify instead and record the change in docs/DECISIONS.md.
+  # Enterprise (this repo doesn't have it yet — see docs/DECISIONS.md 0005 and issue
+  # #8). Until the user resolves that (public repo, or switch to Vercel/Netlify),
+  # this checks first and skips cleanly rather than showing a red X on every push.
   deploy:
     name: deploy to GitHub Pages
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
@@ -47,7 +48,19 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: check Pages is enabled
+        id: precheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "SKIP: GitHub Pages isn't enabled for this repo yet (see docs/DECISIONS.md 0005 / issue #8)."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
       - id: deployment
+        if: steps.precheck.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4
 
   # PR preview subpath deployment (/pr-<n>/ + a PR comment with the link) is a
