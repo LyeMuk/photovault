@@ -1,0 +1,23 @@
+name: Main branch guard
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-head-ref:
+    name: only release/* or hotfix/* may target main
+    runs-on: ubuntu-latest
+    steps:
+      # docs/CONTEXT.md §17.2: "main additionally: only release/* / hotfix/* heads
+      # (enforced by a CI check on the PR head ref)."
+      - name: verify PR head ref
+        run: |
+          ref="${{ github.head_ref }}"
+          case "$ref" in
+            release/*|hotfix/*) echo "OK: $ref" ;;
+            *)
+              echo "PRs into main must come from a release/* or hotfix/* branch (docs/CONTEXT.md §17.2). Got: $ref"
+              exit 1
+              ;;
+          esac
