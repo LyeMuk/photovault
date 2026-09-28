@@ -4,7 +4,7 @@
   "type": "module",
   "workspaces": ["apps/web"],
   "scripts": {
-    "prepare": "lefthook install"
+    "prepare": "node -e \"process.env.CI || require('child_process').execSync('lefthook install', {stdio: 'inherit'})\""
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
