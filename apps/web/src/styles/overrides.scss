@@ -1,0 +1,35 @@
+@use "theme";
+
+// The only place custom, non-Tabler CSS is allowed to live (docs/CONTEXT.md §11.1 rule 1).
+// Everything here must reference Tabler/Bootstrap variables or --tblr-* custom
+// properties — no inline hex colors.
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+// Bottom tab bar respects iOS safe areas (viewport-fit=cover, set in index.html).
+.pv-tab-bar {
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(var(--pv-tab-bar-height) + env(safe-area-inset-bottom));
+}
+
+.pv-top-bar {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pv-page-body {
+  padding-bottom: calc(var(--pv-tab-bar-height) + env(safe-area-inset-bottom) + 1rem);
+}
+
+// Demo-mode banner (docs/CONTEXT.md §17.5): a fixed, dismissible-looking but always-on
+// notice, using the semantic `info` color per §11.1 rule 5 — never a hard-coded color.
+.pv-demo-banner {
+  border-radius: 0;
+}

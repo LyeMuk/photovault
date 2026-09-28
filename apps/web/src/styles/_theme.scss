@@ -1,0 +1,18 @@
+// Theme tokens (docs/CONTEXT.md §11.1 rule 2): brand color, radius, spacing all live
+// here as overrides of Tabler's own --tblr-* custom properties. Never hard-code a hex
+// color anywhere else in the app — reference these tokens instead.
+:root {
+  --tblr-primary: #2c5ba3;
+  --tblr-primary-rgb: 44, 91, 163;
+  --tblr-border-radius: 0.5rem;
+  --tblr-border-radius-lg: 0.75rem;
+  --pv-tab-bar-height: 56px;
+}
+
+// Tabler's dark mode is driven by [data-bs-theme="dark"] on <html>, set from
+// `prefers-color-scheme` at startup (see src/main.tsx) with a manual override
+// stored per-viewer in localStorage (Settings screen, Phase 1+).
+[data-bs-theme="dark"] {
+  --tblr-primary: #6d9eeb;
+  --tblr-primary-rgb: 109, 158, 235;
+}

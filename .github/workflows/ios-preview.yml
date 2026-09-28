@@ -1,0 +1,45 @@
+name: iOS preview (TestFlight)
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  testflight:
+    name: build, sign & upload to TestFlight (internal)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # docs/CONTEXT.md §17.4: this workflow needs (a) apps/mobile/ios to exist
+      # (created once Xcode is confirmed installed locally — see docs/DECISIONS.md
+      # 0002) and (b) Apple Developer signing secrets (APPSTORE_API_KEY_ID,
+      # APPSTORE_API_ISSUER_ID, APPSTORE_API_KEY_P8, plus fastlane match or manual
+      # cert/profile secrets — see docs/DECISIONS.md 0003). Until both exist, this
+      # job checks and skips cleanly rather than failing or faking a build —
+      # "surface it honestly... never fake success" (docs/CONTEXT.md §16.9).
+      - name: check preconditions
+        id: precheck
+        run: |
+          if [ ! -d "apps/mobile/ios" ]; then
+            echo "SKIP: apps/mobile/ios doesn't exist yet (Phase 0/1 — needs Xcode installed locally first)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "${{ secrets.APPSTORE_API_KEY_P8 }}" ]; then
+            echo "SKIP: Apple Developer signing secrets are not configured yet (see docs/DECISIONS.md 0003)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: build, sign & upload
+        if: steps.precheck.outputs.ready == 'true'
+        working-directory: apps/mobile/ios
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+        run: |
+          echo "TODO (Phase 1+): bundle exec fastlane ios beta"
+          exit 1

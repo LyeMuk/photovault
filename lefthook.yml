@@ -1,0 +1,41 @@
+assert_lefthook_installed: true
+
+pre-commit:
+  parallel: true
+  commands:
+    eslint:
+      root: apps/web
+      glob: "*.{ts,tsx}"
+      run: npx eslint {staged_files}
+    prettier:
+      root: apps/web
+      glob: "*.{ts,tsx,scss,json,md}"
+      run: npx prettier --check {staged_files}
+    typecheck:
+      root: apps/web
+      glob: "*.{ts,tsx}"
+      run: npm run typecheck
+    # swiftformat/swiftlint aren't installed on this machine yet (no Homebrew — see
+    # docs/DECISIONS.md 0001); these steps skip cleanly instead of blocking every
+    # commit until the user installs them (e.g. via Mint, once Xcode is set up).
+    swiftformat:
+      root: native/PhotoVaultKit
+      glob: "*.swift"
+      run: |
+        if command -v swiftformat >/dev/null 2>&1; then swiftformat --lint .; \
+        else echo "skip: swiftformat not installed"; fi
+    swiftlint:
+      root: native/PhotoVaultKit
+      glob: "*.swift"
+      run: |
+        if command -v swiftlint >/dev/null 2>&1; then swiftlint; \
+        else echo "skip: swiftlint not installed"; fi
+    gitleaks:
+      run: |
+        if command -v gitleaks >/dev/null 2>&1; then gitleaks protect --staged; \
+        else echo "skip: gitleaks not installed"; fi
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}

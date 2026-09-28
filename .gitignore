@@ -1,0 +1,53 @@
+# Node
+node_modules/
+dist/
+apps/web/dist/
+*.log
+npm-debug.log*
+
+# Vite
+apps/web/.vite/
+*.tsbuildinfo
+
+# Capacitor / iOS
+apps/mobile/ios/App/App/public
+apps/mobile/ios/App/Pods/
+apps/mobile/ios/App/build/
+apps/mobile/ios/DerivedData/
+**/DerivedData/
+**/xcuserdata/
+*.xcuserstate
+build/
+
+# SwiftPM
+.build/
+native/**/.swiftpm/
+# Package.resolved is intentionally NOT ignored — like package-lock.json, it pins
+# exact resolved dependency versions (docs/CONTEXT.md §16.5) and should be committed.
+
+# Models & data (fetched by scripts, not committed)
+models/*.mlpackage
+models/*.onnx
+data/geonames/raw/
+
+# Secrets
+.env
+.env.*
+*.p12
+*.mobileprovision
+*.p8
+*.pfx
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Test output
+coverage/
+test-results/
+playwright-report/

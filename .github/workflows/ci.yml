@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  web:
+    name: web (lint, types, tests, e2e)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+  native:
+    name: native (swift test)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: native/PhotoVaultKit
+    steps:
+      - uses: actions/checkout@v4
+      # CI runs on macos-latest, which ships full Xcode — the -plugin-path workaround
+      # in Package.swift (needed only under bare Command Line Tools, see
+      # docs/DECISIONS.md 0002) is a no-op here.
+      - run: swift test
+      # xcodebuild + XCUITest against the iOS simulator land once apps/mobile/ios
+      # exists (Phase 1, docs/CONTEXT.md §13) — nothing to build yet.
+
+  secret-scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  license-check:
+    name: license check (npm)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npx license-checker --production --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Python-2.0"
+
+  network-deny-test:
+    name: network deny-list (web layer)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - name: fail if a network-call API appears in the web source
+        run: |
+          # docs/CONTEXT.md §13: "No outbound network calls except (a) the update
+          # check and (b) opt-in map tiles" — both of those live in native code,
+          # never the WebView. Flags the actual call sites (fetch/XHR/WebSocket/
+          # axios), not bare URL-shaped strings — an SVG xmlns like
+          # "http://www.w3.org/2000/svg" is not a network call.
+          if grep -rEn "\bfetch\(|XMLHttpRequest|new WebSocket\(|\baxios\b" src --include="*.ts" --include="*.tsx"; then
+            echo "Found a network-call API in apps/web/src — see docs/CONTEXT.md §13's privacy promise."
+            exit 1
+          fi

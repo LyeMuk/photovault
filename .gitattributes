@@ -1,0 +1,15 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.heic binary
+*.gif binary
+*.webp binary
+*.mov binary
+*.mp4 binary
+*.mlpackage binary
+*.mlmodel binary
+*.onnx binary
+*.ico binary

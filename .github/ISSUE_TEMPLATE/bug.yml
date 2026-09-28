@@ -1,0 +1,26 @@
+name: Bug report
+description: Something isn't working as specified in docs/CONTEXT.md
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: phase
+    attributes:
+      label: Phase / area
+      placeholder: e.g. Phase 2 — backup engine
+  - type: input
+    id: environment
+    attributes:
+      label: iPhone model, iOS version, drive format (if relevant)

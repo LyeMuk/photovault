@@ -1,0 +1,56 @@
+name: Demo
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build (demo mode)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build:demo
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        with:
+          path: apps/web/dist
+
+  # docs/CONTEXT.md §17.4: GitHub Pages needs Pages enabled for this repo (Settings →
+  # Pages → Source: GitHub Actions), and private-repo Pages needs GitHub Pro/Team/
+  # Enterprise. If that's unavailable on the account's plan, switch this job to
+  # deploy to Vercel or Netlify instead and record the change in docs/DECISIONS.md.
+  deploy:
+    name: deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  # PR preview subpath deployment (/pr-<n>/ + a PR comment with the link) is a
+  # Phase 1+ nice-to-have, not required for Phase 0's exit criteria (docs/CONTEXT.md
+  # §13: "the empty app shell is live at the demo URL"). For now, PRs only verify
+  # the demo build compiles, via the `build` job above.

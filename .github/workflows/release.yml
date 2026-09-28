@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    name: release build → TestFlight/App Store + GitHub Release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same precondition guard as ios-preview.yml — see docs/DECISIONS.md 0002/0003.
+      - name: check preconditions
+        id: precheck
+        run: |
+          if [ ! -d "apps/mobile/ios" ]; then
+            echo "SKIP: apps/mobile/ios doesn't exist yet."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "${{ secrets.APPSTORE_API_KEY_P8 }}" ]; then
+            echo "SKIP: Apple Developer signing secrets are not configured yet (see docs/DECISIONS.md 0003)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: release build, sign & submit
+        if: steps.precheck.outputs.ready == 'true'
+        working-directory: apps/mobile/ios
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+        run: |
+          echo "TODO (Phase 6): bundle exec fastlane ios release"
+          exit 1
+
+      - name: create GitHub Release
+        if: steps.precheck.outputs.ready == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

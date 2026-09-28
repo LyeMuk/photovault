@@ -1,0 +1,20 @@
+name: Feature / task
+description: A task from a build phase in docs/CONTEXT.md, or a new idea
+labels: [enhancement]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
+  - type: input
+    id: phase
+    attributes:
+      label: Phase (see CONTEXT.md §13)
+      placeholder: e.g. Phase 1 — Library + Drive
+  - type: textarea
+    id: spec-ref
+    attributes:
+      label: Relevant spec section(s)
+      placeholder: e.g. §7.2 Backup & the one-copy invariant

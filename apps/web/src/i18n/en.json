@@ -1,0 +1,65 @@
+{
+  "app": {
+    "name": "PhotoVault",
+    "demoBanner": "Demo mode — uses sample photos, not yours"
+  },
+  "nav": {
+    "home": "Home",
+    "gallery": "Gallery",
+    "backup": "Backup",
+    "restore": "Restore",
+    "more": "More"
+  },
+  "home": {
+    "title": "Home",
+    "driveCardTitle": "Drive",
+    "libraryCardTitle": "Library",
+    "backupNow": "Back up now",
+    "notBackedUp": "{{count}} not backed up",
+    "totalItems": "{{count}} items",
+    "noDriveConnected": "No drive connected",
+    "connectDrive": "Connect a drive"
+  },
+  "gallery": {
+    "title": "Gallery",
+    "empty": "No items match this filter",
+    "loading": "Loading your library…"
+  },
+  "backup": {
+    "title": "Back up",
+    "what": "What",
+    "options": "Options",
+    "review": "Review",
+    "run": "Run",
+    "start": "Start backup",
+    "copied": "Copied {{count}}",
+    "skipped": "Skipped {{count}} duplicates"
+  },
+  "restore": {
+    "title": "Restore"
+  },
+  "more": {
+    "title": "More",
+    "people": "People",
+    "places": "Places",
+    "jobs": "Jobs & logs",
+    "settings": "Settings",
+    "uiKit": "Component catalogue"
+  },
+  "status": {
+    "backed_up": "In Vault",
+    "not_backed_up": "Not backed up",
+    "partial": "Partial",
+    "icloud_only": "iCloud-only",
+    "removed_from_iphone": "Removed from iPhone"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "loading": "Loading…",
+    "retry": "Retry"
+  }
+}
