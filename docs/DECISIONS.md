@@ -76,14 +76,38 @@ once credentials are provided and record the bundle id actually registered in Ap
 
 ---
 
-## 0004 — GitHub repository creation deferred pending `gh auth login`
+## 0005 — Free-plan private-repo limits: no native branch protection, no GitHub Pages
 
-**Context:** `gh` was not authenticated. Interactive browser-based device login cannot be completed by
-the agent.
+**Context:** The repo (`LyeMuk/photovault`) is private on a free GitHub plan. Two things §17
+anticipates as possible turned out to actually apply:
+- `PUT /branches/{branch}/protection` returns 403 "Upgrade to GitHub Pro or make this repository
+  public to enable this feature" for both `main` and `develop`.
+- `POST /repos/{owner}/{repo}/pages` returns 422 "Your current plan does not support GitHub Pages
+  for this repository."
 
-**Decision:** The user was asked to run `gh auth login` themselves. Local git history and all Phase 0
-files are being built in the meantime; `gh repo create` and the push (§17.1) happen as soon as
-authentication is confirmed.
+**Decision:** Per §17.2's own fallback ("enforce the same rules with CI checks plus the agent's own
+discipline") and §17.4/§17.5's own fallback ("use Vercel/Netlify"):
+- Branch protection is enforced by discipline + the `ci.yml`/`main-branch-guard.yml` required checks
+  only — nothing server-side stops a direct push to `main`/`develop`. Treat "never commit directly to
+  main/develop" as a hard rule to follow manually until/unless the plan changes.
+- `demo.yml` needs a different static host than GitHub Pages. **Asked the user** to choose one (see
+  chat) rather than picking unilaterally, since it involves an account/credentials tradeoff:
+  (a) make the repo public, which unlocks Pages for free with zero new accounts, or (b) keep it
+  private and deploy to Vercel or Netlify, which needs that account plus a deploy token as a repo
+  secret. Update this entry with whichever is chosen and the actual secret names once configured.
 
-**Consequences:** None yet — this is a sequencing note, updated once the repo exists (record the repo
-URL here).
+**Consequences:** Until the demo-hosting choice is made, `demo.yml`'s deploy step has no working
+target — the `build` job (which needs no hosting decision) still runs and validates the demo build on
+every push/PR.
+
+## 0004 — GitHub repository created
+
+**Context:** `gh` was not authenticated at first; the user ran `gh auth login` themselves (as
+account `LyeMuk`), since the agent cannot complete an interactive browser-based device login.
+
+**Decision:** Once authenticated, created the repo per §17.1: `https://github.com/LyeMuk/photovault`
+(private), pushed `main` and `develop`, set `develop` as the default branch with squash-merge-only
+settings, and added `main-branch-guard.yml` (§17.2's "only release/*/hotfix/* may target main" rule).
+
+**Consequences:** See 0005 for the branch-protection and Pages plan limitations discovered right
+after this.
