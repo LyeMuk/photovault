@@ -14,8 +14,10 @@ drive plugged directly into the phone — no laptop, no cloud, no accounts.
 
 ## Status
 
-🚧 Phase 0 (Foundations) — in progress. See [docs/DEMOS.md](docs/DEMOS.md) for
-the live demo link and [docs/CONTEXT.md](docs/CONTEXT.md) for the full build
+🚧 Phase 0 (Foundations) — in progress. **Live demo:** https://lyemuk.github.io/photovault/
+(synthetic data — try the Backup wizard twice and watch the second run skip
+everything as a duplicate). See [docs/DEMOS.md](docs/DEMOS.md) for what's new
+each phase and [docs/CONTEXT.md](docs/CONTEXT.md) for the full build
 specification this project follows.
 
 ## Repository layout

@@ -90,15 +90,19 @@ discipline") and §17.4/§17.5's own fallback ("use Vercel/Netlify"):
 - Branch protection is enforced by discipline + the `ci.yml`/`main-branch-guard.yml` required checks
   only — nothing server-side stops a direct push to `main`/`develop`. Treat "never commit directly to
   main/develop" as a hard rule to follow manually until/unless the plan changes.
-- `demo.yml` needs a different static host than GitHub Pages. **Asked the user** to choose one (see
-  chat) rather than picking unilaterally, since it involves an account/credentials tradeoff:
-  (a) make the repo public, which unlocks Pages for free with zero new accounts, or (b) keep it
-  private and deploy to Vercel or Netlify, which needs that account plus a deploy token as a repo
-  secret. Update this entry with whichever is chosen and the actual secret names once configured.
+- `demo.yml` needed a different static host than GitHub Pages. **Asked the user**, who chose to make
+  the repo public — free Pages, zero new accounts, and there was nothing sensitive in it anyway.
 
-**Consequences:** Until the demo-hosting choice is made, `demo.yml`'s deploy step has no working
-target — the `build` job (which needs no hosting decision) still runs and validates the demo build on
-every push/PR.
+**Resolution:** Repo is now public (`gh repo edit --visibility public`). This unlocked two things at
+once:
+- `POST /repos/{owner}/{repo}/pages` succeeded — Pages is enabled (source: GitHub Actions, branch
+  `develop`). Live demo: **https://lyemuk.github.io/photovault/**.
+- Branch protection (0004) also now works on the free plan for a public repo — applied to both
+  `main` and `develop`: PR required, required status checks (the `ci.yml`/`demo.yml`/
+  `main-branch-guard.yml` job names), up to date before merge, linear history, no force-push, no
+  deletion, conversations resolved, **enforce_admins: true**. That last one matters: from this point
+  on, direct pushes to `main`/`develop` are rejected by GitHub itself, not just by discipline —
+  including for the repo owner. All further work goes through `feature/*`/`fix/*` branches and PRs.
 
 ## 0004 — GitHub repository created
 
