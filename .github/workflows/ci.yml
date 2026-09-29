@@ -13,7 +13,7 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -36,7 +36,7 @@ jobs:
     name: native (swift test + ios build)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # CI runs on macos-latest, which ships full Xcode — the -plugin-path workaround
       # in Package.swift (needed only under bare Command Line Tools, see
       # docs/DECISIONS.md 0002) is a no-op here.
@@ -68,7 +68,7 @@ jobs:
     name: gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
@@ -82,7 +82,7 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -100,7 +100,7 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: fail if a network-call API appears in the web source
         run: |
           # docs/CONTEXT.md §13: "No outbound network calls except (a) the update

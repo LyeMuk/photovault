@@ -9,7 +9,7 @@ jobs:
     name: build, sign & upload to TestFlight (internal)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # docs/CONTEXT.md §17.4: this workflow needs (a) apps/mobile/ios to exist
       # (created once Xcode is confirmed installed locally — see docs/DECISIONS.md
