@@ -12,7 +12,7 @@ real-device matrix results as they're gathered.
 | Web E2E (Playwright, demo mode) | `cd apps/web && npm run test:e2e` | Yes — 9 tests passing (3 iPhone viewport projects × 3 specs, incl. real WebKit for iPhone SE) |
 | Swift unit (platform-agnostic) | `cd native/PhotoVaultKit && swift test` | Yes — 26 tests passing (see DECISIONS.md 0002 for the CLT plugin-path fix this needed) |
 | Swift unit (PhotoKit/Vision-backed) | same, via CI | No — needs Xcode/iOS SDK (see DECISIONS.md 0002); no such code exists yet |
-| iOS app build (simulator) | `cd apps/mobile && npx cap copy ios && xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'generic/platform=iOS Simulator' build` | Yes, now that Xcode is installed (DECISIONS.md 0006) — builds, installs, and launches on a booted simulator, showing the shell UI with empty states (no native plugins yet) |
+| iOS app build (simulator) | `cd apps/mobile && npx cap copy ios && xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'generic/platform=iOS Simulator' build` | Yes — builds, installs, and launches on a booted simulator against the simulator's **real** Photos library (seed it with `xcrun simctl addmedia <device> <image-path>`). Pre-grant permission with `xcrun simctl privacy <device> grant photos <bundle-id>` before first launch — a headless `simctl launch` can't reliably resolve a freshly-presented system permission alert (see DECISIONS.md 0008). |
 | XCUITest device flows | `tests/device/` | No — needs actual UI test targets and a real device flow (PhotoKit/drive) worth exercising; Phase 1+ |
 
 ## Real-device matrix

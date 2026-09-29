@@ -8,7 +8,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // Must be our MainViewController subclass, not the plain CAPBridgeViewController
+        // Capacitor scaffolds by default — that's what registers our native plugins
+        // (PhotoLibraryPlugin etc.) in capacitorDidLoad(). See MainViewController.swift.
+        window?.rootViewController = MainViewController()
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)

@@ -24,6 +24,10 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PhotoVault reads your photos and videos so it can back them up to your external drive. Nothing ever leaves this device and the drive you choose.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>PhotoVault can restore backed-up photos and videos back into your library, with their original dates and locations.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
