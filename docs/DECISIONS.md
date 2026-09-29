@@ -194,3 +194,59 @@ until this is revisited — accepted as a known gap, not something to keep re-ra
 Issues #10–12 proceed now against the simulator's real Photos library. Issues #13/#14 (real drive
 validation) and any real-device fault-injection testing (docs/CONTEXT.md §14's device matrix) wait
 for a physical iPhone.
+
+---
+
+## 0008 — First real native plugin: PhotoLibraryPlugin (issue #10, most of #11/#12)
+
+**Context:** First real PhotoKit-backed Capacitor plugin, replacing `PhotoLibraryWeb`'s mock on-device.
+Implements `requestAuthorization`, `presentLimitedLibraryPicker`, `getLibrarySummary`, `syncLibrary`
+(honest partial — see below), and `queryAssets` against the real Photos library.
+
+**Decision / what shipped:**
+- `native/CapacitorPlugins` conventions established: `PhotoLibraryPlugin.swift` lives in
+  `apps/mobile/ios/App/App/` (not a separate SPM target — Capacitor plugins embedded directly in the
+  app target are the simpler path and what Capacitor's own docs recommend for app-local plugins),
+  registered via `bridge?.registerPluginInstance(...)` in a new `MainViewController.capacitorDidLoad()`.
+- Added `NSPhotoLibraryUsageDescription`/`NSPhotoLibraryAddUsageDescription` to Info.plist.
+- `presentLimitedLibraryPicker` needs `import PhotosUI`, not `Photos` — the method lives in
+  `PHPhotoLibrary+PhotosUISupport.h`, a separate framework. Non-obvious; the compiler error ("has no
+  member") gives no hint that the fix is a different import, not a different method name.
+- `bytesEstimate` is a heuristic (flat per-photo/per-video constant) — no cheap, non-deprecated
+  PhotoKit API gives exact file size without exporting the resource. Real sizes come from the actual
+  backup export later (Phase 2).
+- `syncLibrary` is honestly partial: no `PHPersistentChangeToken` tracking and nothing persists to
+  PhotoVaultKit's IndexStore yet — every call just re-reports the current full count. Real incremental
+  sync + SQLite persistence is follow-up work, not done here.
+- Every asset reports `status: "not_backed_up"` — correct today (no backup engine exists on-device
+  yet), not a placeholder to "fix" later without also building Phase 2.
+
+**Debugging note — a real, non-obvious bug found and fixed:** `npx cap add ios` scaffolds
+`SceneDelegate.swift` to build the root view controller **programmatically**
+(`window?.rootViewController = CAPBridgeViewController()`), which completely bypasses
+`Main.storyboard`'s view-controller class. Changing the storyboard's `customClass` to a
+`CAPBridgeViewController` subclass (the officially documented way to register app-local plugins, via
+overriding `capacitorDidLoad()`) does **nothing** in this scaffold — it's dead configuration, silently
+ignored, no error, no crash. The subclass must also be wired into `SceneDelegate.swift` directly. Spent
+real effort chasing this as a blank-WebView bug (added error-catching diagnostic overlays, suspected
+CORS on `crossorigin` module scripts, suspected a WebKit "JS prompt" pre-paint quirk) before finding the
+actual cause via `NSLog` in both `capacitorDidLoad()` and the plugin method: the logs simply never
+appeared, proving the class was never instantiated at all. **Lesson for any future custom plugin: check
+`SceneDelegate.swift`'s `rootViewController` line matches the storyboard's `customClass`, not just one
+of the two.**
+
+**Simulator-testing note (ties into 0007):** `xcrun simctl uninstall` resets an app's TCC privacy
+decisions back to `notDetermined`. Requesting a permission via a **headless** `simctl launch` (not an
+interactive tap) can leave the system alert queued/unrendered indefinitely — the JS promise just hangs
+forever with no error. Two reliable patterns going forward: (a) `xcrun simctl privacy <device> grant
+photos <bundle-id>` *before* the first launch that will call `requestAuthorization`, so no alert is
+needed at all — resolves in <1s; or (b) if a real interactive test of the alert UI itself is wanted, it
+needs an actual tap (computer-use tooling, or the user's own hand on a real Simulator window /
+physical device) — a screenshot alone can show the alert rendering correctly (which it does — verified,
+including our custom usage-description text), but dismissing it needs a real tap.
+
+**Consequences:** Verified end-to-end against the simulator's real Photos library (12 real PHAssets:
+6 synthetic seeded via `simctl addmedia` + 6 simulator defaults): permission flow, `getLibrarySummary`
+("12 items · 34.3 MB"), and Gallery's `queryAssets` (grouped by real, varied capture dates: Sept 2026,
+Mar 2018, Aug 2012, Mar 2011) all work correctly end-to-end. Thumbnails still show as empty tiles
+(`pv-thumb://` has no handler yet — issue #12's remaining piece).
