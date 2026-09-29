@@ -2,7 +2,7 @@
   "name": "photovault",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/web"],
+  "workspaces": ["apps/web", "apps/mobile"],
   "scripts": {
     "prepare": "node -e \"process.env.CI || require('child_process').execSync('lefthook install', {stdio: 'inherit'})\""
   },

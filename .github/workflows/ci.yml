@@ -33,19 +33,36 @@ jobs:
           retention-days: 14
 
   native:
-    name: native (swift test)
+    name: native (swift test + ios build)
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: native/PhotoVaultKit
     steps:
       - uses: actions/checkout@v4
       # CI runs on macos-latest, which ships full Xcode — the -plugin-path workaround
       # in Package.swift (needed only under bare Command Line Tools, see
       # docs/DECISIONS.md 0002) is a no-op here.
-      - run: swift test
-      # xcodebuild + XCUITest against the iOS simulator land once apps/mobile/ios
-      # exists (Phase 1, docs/CONTEXT.md §13) — nothing to build yet.
+      - name: swift test
+        working-directory: native/PhotoVaultKit
+        run: swift test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+        working-directory: apps/web
+      - name: build web assets
+        working-directory: apps/web
+        run: npm run build
+      - name: sync web assets into the iOS project
+        working-directory: apps/mobile
+        run: npx cap copy ios
+      - name: build the iOS app for the simulator
+        working-directory: apps/mobile
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' build
+      # XCUITest against a booted simulator is Phase 1+ work, once there's a real
+      # device flow (Photos/drive) worth exercising end to end.
 
   secret-scan:
     name: gitleaks

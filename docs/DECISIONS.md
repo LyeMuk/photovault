@@ -58,6 +58,8 @@ when ready. Until then:
 Developer Program credentials are supplied (see 0003). The web demo half of Phase 0's exit criteria
 does not depend on this and is verified locally (screenshotted and click-tested with Playwright).
 
+**Follow-up:** Xcode is now installed and `apps/mobile/ios` has been generated — see 0006.
+
 ---
 
 ## 0003 — Apple Developer Program credentials pending
@@ -115,3 +117,49 @@ settings, and added `main-branch-guard.yml` (§17.2's "only release/*/hotfix/* m
 
 **Consequences:** See 0005 for the branch-protection and Pages plan limitations discovered right
 after this.
+
+---
+
+## 0006 — Xcode installed; apps/mobile/ios generated and building
+
+**Context:** The user installed Xcode (full, not just Command Line Tools) via the App Store and
+confirmed. `xcode-select -p` now points at `/Applications/Xcode.app/Contents/Developer`, and
+`xcrun simctl list devices` works, confirming the license was already accepted.
+
+**Decision:** Generated the Capacitor iOS project per issue #7 and apps/mobile/README.md:
+- Capacitor's CLI needs its own `package.json` in its working directory (it doesn't walk up to a
+  workspace root like plain Node resolution does) — added `apps/mobile/package.json` and added
+  `apps/mobile` to the root `workspaces` array so its dependencies hoist to the shared root
+  `node_modules` instead of needing a separate install.
+- Bundle id: `com.lyemuk.photovault` (docs/CONTEXT.md §18's default pattern, `com.<owner>.photovault`).
+- `xcodebuild -project ios/App/App.xcodeproj -scheme App -destination 'generic/platform=iOS Simulator'
+  build` succeeds. Booted a simulator, installed, and launched the app — it renders the same shell UI
+  as the browser build (top bar, demo banner, Home screen, bottom tabs), but every plugin call
+  (`PhotoLibrary`/`Drive`/`Engine`/`Faces`/`Places`) fails on-device since no native Swift plugin
+  exists yet (`native/CapacitorPlugins` is still empty), so the UI shows its empty states instead of
+  demo data. **This is the expected Phase 0 native state**, not a bug — the spec's own Phase 0 demo
+  milestone is "dashboard empty states," and full synthetic demo data was always meant to be a
+  browser-only thing (docs/CONTEXT.md §17.5's web demo), not something the native shell reproduces
+  before real plugins exist.
+- Wired `xcodebuild` into `ci.yml`'s `native` job (build web assets → `cap copy ios` → `xcodebuild`
+  for the simulator), matching §17.4's CI table. XCUITest itself is deferred to Phase 1, once there's
+  a real device flow worth testing.
+- `.gitignore` already correctly excluded the generated build cruft (`DerivedData`, `xcuserdata`,
+  `App/App/public`) without changes — only source files (`capacitor.config.ts`, the Xcode project,
+  `Package.resolved` for the SPM-based Capacitor dependency) get committed.
+
+**Debugging note (a real dead end, recorded so it isn't repeated):** The first couple of manual
+simulator launches showed a persistent blank white screen with no console errors. Spent significant
+effort adding diagnostic scripts (error overlays, `console.error` capture) directly into the *built*
+`DerivedData` copy of `index.html` to chase it — which led to a **self-inflicted false lead**: editing
+that build product directly made it newer than the source `ios/App/App/public/index.html`, so Xcode's
+incremental "copy bundle resources" phase kept skipping the re-copy on subsequent `xcodebuild` runs,
+making the diagnostic patch appear to "fix" the blank screen when it was really just a stale-artifact
+timing coincidence. A `xcodebuild clean` + rebuild proved the *unpatched* build also renders correctly
+and consistently — the original blank screens were a cold-launch timing artifact (screenshotting
+before the WKWebView finished its first paint), not a real bug. Lesson: never edit files under
+`DerivedData` directly when debugging a build — it silently breaks incremental builds' freshness
+checks. Always change the source and rebuild (or `xcodebuild clean` first if in doubt).
+
+**Consequences:** Issue #7 is done. Phase 0's remaining gaps are just #9 (Apple Developer credentials,
+for `ios-preview.yml` to actually sign and upload) — everything else about the native shell works.
