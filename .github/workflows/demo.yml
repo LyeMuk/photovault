@@ -61,7 +61,7 @@ jobs:
           fi
       - id: deployment
         if: steps.precheck.outputs.enabled == 'true'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   # PR preview subpath deployment (/pr-<n>/ + a PR comment with the link) is a
   # Phase 1+ nice-to-have, not required for Phase 0's exit criteria (docs/CONTEXT.md
