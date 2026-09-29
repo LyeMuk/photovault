@@ -163,3 +163,34 @@ checks. Always change the source and rebuild (or `xcodebuild clean` first if in 
 
 **Consequences:** Issue #7 is done. Phase 0's remaining gaps are just #9 (Apple Developer credentials,
 for `ios-preview.yml` to actually sign and upload) — everything else about the native shell works.
+
+---
+
+## 0007 — Development stays local/simulator-only; Apple Developer Program deferred indefinitely
+
+**Context:** The user can't afford the $99/year Apple Developer Program membership right now. Asked
+what's actually blocked without it.
+
+**Decision:** Almost nothing, for local development purposes:
+- **Blocked, no workaround:** TestFlight distribution and App Store submission (issue #9's actual
+  scope) — both hard-require a paid membership. `ios-preview.yml`/`release.yml` stay in their
+  precondition-check-and-skip state (docs/DECISIONS.md 0003) indefinitely, not just temporarily.
+- **Not blocked:** everything else. PhotoVault uses no capability that's paid-account-gated (no push
+  notifications, iCloud/CloudKit, Apple Pay, etc.). Two free paths remain fully open:
+  - **iOS Simulator** — no Apple ID needed at all, and critically, **the simulator has a real Photos
+    library** backed by actual PhotoKit — seed it with test images via
+    `xcrun simctl addmedia <device> <image-or-video-path>` and write genuine PHAsset-based Swift code
+    against it. This covers real development and testing for Phase 1's permission flow, library sync,
+    and thumbnails (issues #10–12) without any device or paid account.
+  - **A free Apple ID + "Personal Team" signing**, for installing on the user's own physical iPhone via
+    Xcode + USB when one becomes available — re-signs every 7 days instead of the paid program's 1
+    year, but otherwise unrestricted for local use. Not set up yet (the user chose simulator-only for
+    now); revisit issues #13/#14 (drive picking, vault init) then, since the simulator cannot do real
+    external-drive/USB validation (`volumeIsRemovable` etc. behave differently with no real removable
+    volume attached to a simulated device).
+
+**Consequences:** Phase 0's literal exit criterion ("the TestFlight build installs") will not be met
+until this is revisited — accepted as a known gap, not something to keep re-raising each phase.
+Issues #10–12 proceed now against the simulator's real Photos library. Issues #13/#14 (real drive
+validation) and any real-device fault-injection testing (docs/CONTEXT.md §14's device matrix) wait
+for a physical iPhone.
