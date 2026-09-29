@@ -250,3 +250,29 @@ including our custom usage-description text), but dismissing it needs a real tap
 ("12 items · 34.3 MB"), and Gallery's `queryAssets` (grouped by real, varied capture dates: Sept 2026,
 Mar 2018, Aug 2012, Mar 2011) all work correctly end-to-end. Thumbnails still show as empty tiles
 (`pv-thumb://` has no handler yet — issue #12's remaining piece).
+
+---
+
+## 0009 — Thumbnails: pv-thumb:// scheme handler (issue #12)
+
+**Context:** `thumbnailUrl.ts` already built `pv-thumb://` URLs on-device (0008), but nothing served
+them — Gallery tiles rendered as empty boxes.
+
+**Decision:**
+- `PVThumbSchemeHandler.swift` implements `WKURLSchemeHandler`, resolving `id` to a `PHAsset` via
+  `fetchAssets(withLocalIdentifiers:)` and rendering it with `PHCachingImageManager.requestImage`
+  (JPEG, `.highQualityFormat`, no network access — local-only per the privacy promise). Registered in
+  `MainViewController.webViewConfiguration(for:)` via `configuration.setURLSchemeHandler(_:forURLScheme:)`.
+- Changed the URL format from the originally-planned `pv-thumb://<id>?s=<size>` to
+  `pv-thumb://asset?id=<encoded-id>&s=<size>`: `PHAsset.localIdentifier` looks like
+  `"1F4A3B2C-...-XXXX/L0/001"` — the `/`s break using it as a URL host. Caught this before it ever
+  shipped broken, by actually reasoning through the ID format rather than assuming the original spec
+  wording was implementable as literally written.
+- Handles `WKURLSchemeTask` cancellation (`stop`) via a tracked-ID set, since calling
+  `didReceive`/`didFinish` on an already-stopped task crashes and `PHImageManager`'s completion handler
+  has no way to know the task was stopped on its own.
+
+**Consequences:** Verified visually on the simulator: the 6 synthetic solid-color seeded photos render
+as their exact colors; the simulator's built-in sample photos (flowers, waterfalls) render as real
+photo content. Issue #12 is done. Remaining Phase 1 gap is #11's incremental-sync/IndexStore-persistence
+half.
