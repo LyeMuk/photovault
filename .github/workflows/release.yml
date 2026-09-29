@@ -9,7 +9,7 @@ jobs:
     name: release build → TestFlight/App Store + GitHub Release
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Same precondition guard as ios-preview.yml — see docs/DECISIONS.md 0002/0003.
       - name: check preconditions
