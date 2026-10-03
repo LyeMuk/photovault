@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { PageHeader, DriveCard, LibraryCard } from "@/ui";
+import { PageHeader, DriveCard, LibraryCard, useToastStore } from "@/ui";
 import { PhotoLibrary } from "@/plugins/photoLibrary";
 import { Drive } from "@/plugins/drive";
 import { EMPTY_FILTER } from "@/plugins/types";
@@ -11,6 +11,7 @@ export default function Home() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const pushToast = useToastStore((s) => s.push);
 
   // docs/CONTEXT.md §3/§11.2: request access up front, on Home — the closest
   // thing to onboarding until a dedicated first-run flow exists (Phase 1+).
@@ -52,6 +53,26 @@ export default function Home() {
     queryClient.invalidateQueries({ queryKey: ["notBackedUp"] });
   };
 
+  // docs/CONTEXT.md §5.2: a freshly-picked folder with no vault.json yet gets one
+  // automatically, using the default layout template (§4.3's "configurable before
+  // the first backup only" — nothing to configure yet, so default is correct here).
+  const connectDrive = async () => {
+    try {
+      const drive = await Drive.pickDrive();
+      if (!drive.vaultId) {
+        await Drive.initVault({
+          layoutTemplate: "PhotoVault/{YYYY}/{MM}-{MonthName}/{original_name}",
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["drive"] });
+    } catch (error) {
+      const { code, message } = error as { code?: string; message?: string };
+      if (code !== "CANCELLED") {
+        pushToast("danger", message ?? "Couldn't connect that drive.");
+      }
+    }
+  };
+
   return (
     <div>
       <PageHeader title={t("home.title")} />
@@ -71,7 +92,7 @@ export default function Home() {
           </Alert>
         )}
 
-        <DriveCard drive={driveQuery.data ?? null} onConnect={() => Drive.pickDrive()} />
+        <DriveCard drive={driveQuery.data ?? null} onConnect={connectDrive} />
         {summaryQuery.data && (
           <LibraryCard
             summary={summaryQuery.data}

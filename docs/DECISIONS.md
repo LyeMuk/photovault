@@ -335,3 +335,57 @@ than through screenshots:
 
 **Consequences:** Issue #11 done. Phase 1's remaining pieces are #13/#14 (drive picking, vault init),
 both waiting on a physical device.
+
+---
+
+## 0011 — Drive picking + vault init written against the real APIs (issues #13/#14), verification is partial
+
+**Context:** The user asked to make the app "real, not demo." Clarified first: the public web demo is
+*permanently* demo-only (no browser API can bulk-read Photos or reliably touch a USB drive — that's the
+entire reason this project is a native iOS app, not a website, per D2). What "real" can mean is the
+native app, which already has real Photos access (0008–0010); drive picking/vault init (#13/#14) were
+the remaining gap. Chose to write the real implementation now rather than wait for hardware, since most
+of it — the document picker flow, bookmark persistence, file/JSON writing, rejection logic — doesn't
+actually need a real external drive to exist in order to be written and partially verified.
+
+**Decision / what shipped:**
+- `DrivePlugin.swift`: `pickDrive()` presents a real `UIDocumentPickerViewController(forOpeningContentTypes:
+  [.folder])`, validates the result against docs/CONTEXT.md §5.1's rules (reject iCloud Drive via
+  `isUbiquitousItem`, reject internal storage via `volumeIsInternal`, reject NTFS via
+  `volumeLocalizedFormatDescription` string-matching), and persists a security-scoped bookmark via
+  `UserDefaults` (not Keychain — unlike `device_id`, a stale bookmark just means "ask the user to
+  re-pick," there's no durability requirement worth the extra complexity here).
+- `initVault()` creates the real `.photovault/{vault.json, index.sqlite, manifest/, index-backups/,
+  tmp/, quarantine/, thumbs/}` + `PhotoVault/` structure from docs/CONTEXT.md §5.2, reusing an existing
+  `vault_id` if `vault.json` is already there rather than minting a new one on every call. The working
+  `IndexStore` now gets created *at the real vault location* for a connected drive — a second, separate
+  instance from `PhotoLibraryPlugin`'s interim `Application Support/PhotoVault/library.sqlite` (0010).
+  Reconciling those two into one is still open, noted in both entries.
+- Wired into Home.tsx: tapping "Connect a drive" now calls the real `pickDrive()`, auto-initializes the
+  vault if the picked folder has none yet, and surfaces rejections as toasts (distinguishing a plain
+  cancel from an actual validation error via the error's `code`, not its message text — Capacitor's JS
+  bridge surfaces a native `reject(message, code)` as a `CapacitorException` with both fields, confirmed
+  by reading `@capacitor/core`'s own source rather than assuming).
+
+**What's verified, and what genuinely isn't (be honest about this when touching this code later):**
+- **Verified:** the plugin registers and `pickDrive()` reaches native code — proven by actually seeing
+  the real system document picker present on screen (Recents/Shared/Browse chrome, Search, Open/Cancel),
+  triggered via a temporary auto-trigger-on-mount (removed before committing, same technique as 0008's
+  permission-dialog proof). Build succeeds clean, including in CI.
+- **Not verified, and not verifiable without either computer-use tooling or a physical device:**
+  anything past that point — actually selecting a folder, the accept path's format detection, bookmark
+  resolution across launches, and `initVault`'s file writes. This session has no computer-use/screen-
+  automation tool available, and **deliberately did not attempt blind coordinate-based clicking via
+  `osascript`** to work around that — faking through a safety mechanism (computer-use's access-request
+  and vision-based clicking) with raw UI scripting is a worse failure mode than an honestly-unverified
+  code path. The code follows patterns already proven correct elsewhere (file I/O matching
+  `PhotoLibraryPlugin`'s already-verified `indexStorePath()`; `IndexStore` init itself has 29 passing
+  unit tests) but the integration has not been exercised end-to-end.
+- **Can never be verified in Simulator at all, even with computer-use:** the *acceptance* path for a
+  genuinely external/removable volume. Every folder Simulator's document picker can reach lives on the
+  host Mac's own internal disk, so `volumeIsInternal`/`volumeIsRemovable` can only ever exercise the
+  *rejection* branch. Proving acceptance needs a real iPhone with a real USB drive plugged in.
+
+**Consequences:** Issues #13/#14 are code-complete but **not** closed — leaving both open until a
+physical device can actually exercise the accept path and confirm the picker → bookmark → initVault
+flow works end to end.
