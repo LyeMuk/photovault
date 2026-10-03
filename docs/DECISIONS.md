@@ -276,3 +276,62 @@ them — Gallery tiles rendered as empty boxes.
 as their exact colors; the simulator's built-in sample photos (flowers, waterfalls) render as real
 photo content. Issue #12 is done. Remaining Phase 1 gap is #11's incremental-sync/IndexStore-persistence
 half.
+
+---
+
+## 0010 — Real incremental library sync, persisted into PhotoVaultKit's IndexStore (issue #11)
+
+**Context:** `syncLibrary` just re-counted the full library every call, with no `PHPersistentChangeToken`
+tracking and nothing written to SQLite. `PhotoVaultKit` (a separate Swift package) wasn't linked into
+the iOS app at all yet.
+
+**Decision / what shipped:**
+- **Bumped `IPHONEOS_DEPLOYMENT_TARGET` from 15.0 to 17.0** (all 4 build configs) — it didn't match
+  docs/CONTEXT.md §18's own stated minimum ("iOS 17"), and more immediately, the real change-token API
+  (`PHPhotoLibrary.fetchPersistentChanges(since:)`, `.currentChangeToken`,
+  `PHPersistentChange.changeDetails(for:)`) is iOS 16+. Found via the actual SDK headers
+  (`PHPhotoLibrary.h`), not assumed — `grep`'d for `PersistentChange` across
+  `Photos.framework/Headers` to get the real Objective-C signatures, since the bridged Swift names
+  don't show up in the framework's `.swiftinterface` (Photos is ObjC-first; only Swift-only overlay
+  additions like `PHPersistentChangeFetchResult: Sequence` appear there). The two Swift argument
+  labels the Clang importer actually produced — `fetchPersistentChanges(since:)` not `(sinceToken:)`,
+  `changeDetails(for:)` not `(forObjectType:)` — came from letting the compiler correct two guesses
+  (same fast-iteration approach as 0008's `PhotosUI` import discovery).
+- **Linked `native/PhotoVaultKit` into the iOS app** as a second local Swift Package reference
+  (`XCLocalSwiftPackageReference`, `relativePath = "../../../../native/PhotoVaultKit"`, parallel to the
+  existing `CapApp-SPM` reference) — `import PhotoVaultKit` now works directly in
+  `PhotoLibraryPlugin.swift`, GRDB and all.
+- **`IndexStore` grew**: `upsertLibraryAsset`/`markLibraryAssetRemoved`/`getMeta`/`setMeta`/
+  `countLibraryAssets`, all pure-Swift-testable (3 new Swift Testing cases, 29 total now passing).
+- **`DeviceIdentity.swift`**: a small Keychain wrapper for the stable `device_id` docs/CONTEXT.md §6.1
+  specifies ("stored in the Keychain... survives app reinstall") — deliberately not UserDefaults, which
+  is wiped on uninstall.
+- **`performSync()`** in `PhotoLibraryPlugin.swift`: decodes a stored `PHPersistentChangeToken`
+  (NSKeyedArchiver, base64 in `meta.last_change_token`) if present and calls
+  `fetchPersistentChanges(since:)`; on no token, or on any error from that call (e.g. an expired
+  token), falls back to a full `PHAsset.fetchAssets(with: nil)` — matching §7.1's documented fallback
+  rule exactly.
+- The working DB lives at `Application Support/PhotoVault/library.sqlite` — a fixed, vault-agnostic
+  path, since there's no Vault yet (issues #13/#14, still deferred — no physical device). Reconciling
+  this with the real per-vault DB docs/CONTEXT.md §6 describes is Phase 2 work, once a Vault exists.
+- **Scope boundary, deliberately not done here:** `getLibrarySummary`/`queryAssets` still read PhotoKit
+  directly, not the now-persisted `library_assets` table. Issue #11's text was specifically "incremental
+  sync... persisting into IndexStore" — routing reads through IndexStore too is a separate, larger
+  change better done once the Vault/backup engine actually needs `library_assets` as source of truth
+  (it'll need `status` from real `asset_files` joins anyway, not just raw PhotoKit fields).
+
+**Verification:** No UI called `syncLibrary` yet, so wired it into Home.tsx as a silent background query
+(alongside the existing auth/summary queries). Then verified **directly against the real SQLite file**
+on the host Mac (`xcrun simctl get_app_container ... data` → the real, not simulated, file path) rather
+than through screenshots:
+- First launch: `library_assets` got exactly 12 rows (6 synthetic + 6 simulator defaults), real
+  `local_id`/`media_type`/`creation_date` (genuine historical dates: 2009, 2011, 2012), `meta.
+  last_change_token` populated (828 bytes, a real encoded `PHPersistentChangeToken`).
+- Second launch (no library changes): still exactly 12 rows — upsert, not insert, confirmed; same
+  stable `device_id` across both runs (Keychain persistence confirmed).
+- Added one new photo via `simctl addmedia`, relaunched: `library_assets` went to exactly 13, the new
+  row's `creation_date` matching today and a fresh `last_seen_at` — the incremental delta path
+  correctly identified and processed just the one inserted asset.
+
+**Consequences:** Issue #11 done. Phase 1's remaining pieces are #13/#14 (drive picking, vault init),
+both waiting on a physical device.

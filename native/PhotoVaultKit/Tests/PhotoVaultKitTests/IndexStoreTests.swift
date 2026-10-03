@@ -99,4 +99,66 @@ import Foundation
         let decembers = try store.previewCount(matching: Filter(date: .init(months: [12])))
         #expect(decembers.count == 2)
     }
+
+    // MARK: - library_assets upsert / meta (docs/CONTEXT.md §7.1 library sync)
+
+    @Test func upsertLibraryAssetInsertsThenUpdatesInPlace() throws {
+        let store = try IndexStore.inMemory()
+        let asset = IndexStore.LibraryAssetUpsert(
+            localId: "asset-1", deviceId: "device-1", mediaType: "photo",
+            creationDate: 1_700_000_000, modificationDate: 1_700_000_000,
+            isFavorite: false
+        )
+        try store.upsertLibraryAsset(asset, seenAt: 1_700_000_100)
+        #expect(try store.countLibraryAssets() == 1)
+
+        // Re-upserting the same local_id updates the row rather than duplicating it,
+        // and un-marks a prior removal (simulates PHPersistentChange's updatedLocalIdentifiers).
+        let updated = IndexStore.LibraryAssetUpsert(
+            localId: "asset-1", deviceId: "device-1", mediaType: "photo",
+            creationDate: 1_700_000_000, modificationDate: 1_700_000_500,
+            isFavorite: true
+        )
+        try store.upsertLibraryAsset(updated, seenAt: 1_700_000_600)
+        #expect(try store.countLibraryAssets() == 1)
+
+        let row = try store.dbQueue.read { db in
+            try Row.fetchOne(db, sql: "SELECT is_favorite, modification_date FROM library_assets WHERE local_id = ?", arguments: ["asset-1"])
+        }
+        #expect((row?["is_favorite"] as Int?) == 1)
+        #expect((row?["modification_date"] as Int64?) == 1_700_000_500)
+    }
+
+    @Test func markLibraryAssetRemovedExcludesFromCountButKeepsTheRow() throws {
+        let store = try IndexStore.inMemory()
+        let asset = IndexStore.LibraryAssetUpsert(
+            localId: "asset-1", deviceId: "device-1", mediaType: "photo",
+            creationDate: nil, modificationDate: nil
+        )
+        try store.upsertLibraryAsset(asset, seenAt: 100)
+        #expect(try store.countLibraryAssets() == 1)
+
+        try store.markLibraryAssetRemoved(localId: "asset-1", removedAt: 200)
+        #expect(try store.countLibraryAssets() == 0)
+
+        let stillThere = try store.dbQueue.read { db in
+            try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM library_assets WHERE local_id = ?)", arguments: ["asset-1"])
+        }
+        #expect(stillThere == true)
+
+        // A later re-upsert (the asset came back — e.g. undo) un-marks the removal.
+        try store.upsertLibraryAsset(asset, seenAt: 300)
+        #expect(try store.countLibraryAssets() == 1)
+    }
+
+    @Test func metaGetSetRoundTrips() throws {
+        let store = try IndexStore.inMemory()
+        #expect(try store.getMeta("last_change_token") == nil)
+
+        try store.setMeta("last_change_token", "token-v1")
+        #expect(try store.getMeta("last_change_token") == "token-v1")
+
+        try store.setMeta("last_change_token", "token-v2")
+        #expect(try store.getMeta("last_change_token") == "token-v2")
+    }
 }
