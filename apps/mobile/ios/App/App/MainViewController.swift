@@ -12,6 +12,7 @@ import WebKit
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(PhotoLibraryPlugin())
+        bridge?.registerPluginInstance(DrivePlugin())
     }
 
     override open func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {

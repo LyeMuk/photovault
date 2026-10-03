@@ -21,6 +21,7 @@
 		30A69CE324B46DCC4A3F99DD /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83106EA30ECEBC0D6AE9C937 /* MainViewController.swift */; };
 		3611E6A04546FAC03C321879 /* PVThumbSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8106073F364A7E38FF023769 /* PVThumbSchemeHandler.swift */; };
 		38B7BEA1CE40B0C806445454 /* DeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FA0B8EDDB4146DADDECD19 /* DeviceIdentity.swift */; };
+		F2A99F2B032A24C624BC32CA /* DrivePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = E55C6485DDD95B22ABD4BE50 /* DrivePlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +40,7 @@
 		83106EA30ECEBC0D6AE9C937 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		8106073F364A7E38FF023769 /* PVThumbSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PVThumbSchemeHandler.swift; sourceTree = "<group>"; };
 		E2FA0B8EDDB4146DADDECD19 /* DeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentity.swift; sourceTree = "<group>"; };
+		E55C6485DDD95B22ABD4BE50 /* DrivePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrivePlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +83,7 @@
 				83106EA30ECEBC0D6AE9C937 /* MainViewController.swift */,
 				8106073F364A7E38FF023769 /* PVThumbSchemeHandler.swift */,
 				E2FA0B8EDDB4146DADDECD19 /* DeviceIdentity.swift */,
+				E55C6485DDD95B22ABD4BE50 /* DrivePlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -180,6 +183,7 @@
 				30A69CE324B46DCC4A3F99DD /* MainViewController.swift in Sources */,
 				3611E6A04546FAC03C321879 /* PVThumbSchemeHandler.swift in Sources */,
 				38B7BEA1CE40B0C806445454 /* DeviceIdentity.swift in Sources */,
+				F2A99F2B032A24C624BC32CA /* DrivePlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
