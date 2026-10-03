@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
+		628A6608555F440EE9CDCDCB /* PhotoVaultKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9B6E496C5BDEE43E2BA2872 /* PhotoVaultKit */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		504EC30D1FED79650016851F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30B1FED79650016851F /* Main.storyboard */; };
@@ -19,6 +20,7 @@
 		3A2069CC9CE78C99CCE97F41 /* PhotoLibraryPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76CFABA58C565A1D1E90AE1D /* PhotoLibraryPlugin.swift */; };
 		30A69CE324B46DCC4A3F99DD /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83106EA30ECEBC0D6AE9C937 /* MainViewController.swift */; };
 		3611E6A04546FAC03C321879 /* PVThumbSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8106073F364A7E38FF023769 /* PVThumbSchemeHandler.swift */; };
+		38B7BEA1CE40B0C806445454 /* DeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FA0B8EDDB4146DADDECD19 /* DeviceIdentity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +38,7 @@
 		76CFABA58C565A1D1E90AE1D /* PhotoLibraryPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryPlugin.swift; sourceTree = "<group>"; };
 		83106EA30ECEBC0D6AE9C937 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		8106073F364A7E38FF023769 /* PVThumbSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PVThumbSchemeHandler.swift; sourceTree = "<group>"; };
+		E2FA0B8EDDB4146DADDECD19 /* DeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +47,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+				628A6608555F440EE9CDCDCB /* PhotoVaultKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -76,6 +80,7 @@
 				76CFABA58C565A1D1E90AE1D /* PhotoLibraryPlugin.swift */,
 				83106EA30ECEBC0D6AE9C937 /* MainViewController.swift */,
 				8106073F364A7E38FF023769 /* PVThumbSchemeHandler.swift */,
+				E2FA0B8EDDB4146DADDECD19 /* DeviceIdentity.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -104,6 +109,7 @@
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+				C9B6E496C5BDEE43E2BA2872 /* PhotoVaultKit */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -136,6 +142,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				8EF4B9A7FF61612B8C0F914B /* XCLocalSwiftPackageReference "PhotoVaultKit" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -172,6 +179,7 @@
 				3A2069CC9CE78C99CCE97F41 /* PhotoLibraryPlugin.swift in Sources */,
 				30A69CE324B46DCC4A3F99DD /* MainViewController.swift in Sources */,
 				3611E6A04546FAC03C321879 /* PVThumbSchemeHandler.swift in Sources */,
+				38B7BEA1CE40B0C806445454 /* DeviceIdentity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,7 +254,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -297,7 +305,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -314,7 +322,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -336,7 +344,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -378,6 +386,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "CapApp-SPM";
 		};
+		8EF4B9A7FF61612B8C0F914B /* XCLocalSwiftPackageReference "PhotoVaultKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../../native/PhotoVaultKit";
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -385,6 +397,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
+		};
+		C9B6E496C5BDEE43E2BA2872 /* PhotoVaultKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8EF4B9A7FF61612B8C0F914B /* XCLocalSwiftPackageReference "PhotoVaultKit" */;
+			productName = "PhotoVaultKit";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

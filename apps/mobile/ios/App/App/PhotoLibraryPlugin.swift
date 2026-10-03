@@ -2,20 +2,24 @@ import Capacitor
 import Foundation
 import Photos
 import PhotosUI // presentLimitedLibraryPicker lives here, not in Photos itself
+import PhotoVaultKit
 
 /// The real PhotoKit-backed implementation of the `PhotoLibraryPlugin` interface
 /// declared in apps/web/src/plugins/photoLibrary.ts — Capacitor prefers this over
 /// the web mock automatically on-device (registered in MainViewController.swift).
 ///
 /// Scope note: this covers requestAuthorization/presentLimitedLibraryPicker/
-/// getLibrarySummary/syncLibrary/queryAssets against the real Photos library
-/// (docs/CONTEXT.md §7.1's `PHPersistentChangeToken`-based incremental sync and
-/// persisting into PhotoVaultKit's IndexStore are not implemented yet — every
-/// `syncLibrary` call re-fetches fresh rather than tracking real deltas, and
-/// nothing is written to the SQLite schema yet). `bytesEstimate` is a heuristic
-/// (no cheap, non-deprecated PhotoKit API gives exact file size without exporting
-/// the resource) — real sizes come from the backup engine's actual export, later.
-/// Thumbnails (`pv-thumb://`) are a separate piece (issue #12), not this one.
+/// getLibrarySummary/syncLibrary/queryAssets against the real Photos library.
+/// `syncLibrary` does real `PHPersistentChangeToken`-based incremental sync,
+/// persisted into PhotoVaultKit's IndexStore (docs/CONTEXT.md §7.1) — see
+/// `performSync()` below. `getLibrarySummary`/`queryAssets` still read PhotoKit
+/// directly rather than the persisted `library_assets` table; routing them through
+/// IndexStore too is follow-up work, not required for #11's literal scope
+/// ("incremental sync... persisting into PhotoVaultKit's IndexStore").
+/// `bytesEstimate` is a heuristic (no cheap, non-deprecated PhotoKit API gives
+/// exact file size without exporting the resource) — real sizes come from the
+/// backup engine's actual export, later. Thumbnails (`pv-thumb://`) are handled
+/// by PVThumbSchemeHandler.swift, not this file.
 @objc(PhotoLibraryPlugin)
 public class PhotoLibraryPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "PhotoLibraryPlugin"
@@ -73,12 +77,13 @@ public class PhotoLibraryPlugin: CAPPlugin, CAPBridgedPlugin {
             call.resolve(["added": 0, "changed": 0, "removed": 0])
             return
         }
-        // No PHPersistentChangeToken tracking or IndexStore persistence yet (see
-        // the type-level doc comment) — this reports the current full count as
-        // "added" every time, which is honest for a first run but not a real diff.
         DispatchQueue.global(qos: .userInitiated).async {
-            let all = PHAsset.fetchAssets(with: nil)
-            call.resolve(["added": all.count, "changed": 0, "removed": 0])
+            do {
+                let result = try Self.performSync()
+                call.resolve(["added": result.added, "changed": result.changed, "removed": result.removed])
+            } catch {
+                call.reject("syncLibrary failed: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -184,5 +189,114 @@ public class PhotoLibraryPlugin: CAPPlugin, CAPBridgedPlugin {
             ]
         }
         return summary
+    }
+
+    // MARK: - Library sync (docs/CONTEXT.md §7.1), backed by PhotoVaultKit.IndexStore
+
+    private struct SyncResult {
+        let added: Int
+        let changed: Int
+        let removed: Int
+    }
+
+    private static let metaChangeTokenKey = "last_change_token"
+
+    /// `Application Support/PhotoVault/library.sqlite` — a vault-agnostic working DB
+    /// used to track the library before a Vault/drive exists at all (issues #13/#14,
+    /// deferred — no physical device to test real drive picking against yet, see
+    /// docs/DECISIONS.md 0007). Once a Vault is set up, this reconciles with the
+    /// per-vault DB docs/CONTEXT.md §6 describes; that migration is a Phase 2 concern,
+    /// not this one.
+    private static func indexStorePath() throws -> String {
+        let appSupport = try FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
+        )
+        let dir = appSupport.appendingPathComponent("PhotoVault", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("library.sqlite").path
+    }
+
+    private static func encodeToken(_ token: PHPersistentChangeToken) throws -> String {
+        let data = try NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
+        return data.base64EncodedString()
+    }
+
+    private static func decodeToken(_ encoded: String) -> PHPersistentChangeToken? {
+        guard let data = Data(base64Encoded: encoded) else { return nil }
+        return try? NSKeyedUnarchiver.unarchivedObject(ofClass: PHPersistentChangeToken.self, from: data)
+    }
+
+    private static func upsert(_ asset: PHAsset, into store: IndexStore, deviceId: String, now: Int64) throws {
+        let upsert = IndexStore.LibraryAssetUpsert(
+            localId: asset.localIdentifier,
+            deviceId: deviceId,
+            mediaType: asset.mediaType == .video ? "video" : "photo",
+            creationDate: asset.creationDate.map { Int64($0.timeIntervalSince1970) },
+            modificationDate: asset.modificationDate.map { Int64($0.timeIntervalSince1970) },
+            lat: asset.location?.coordinate.latitude,
+            lon: asset.location?.coordinate.longitude,
+            durationMs: asset.mediaType == .video ? Int(asset.duration * 1000) : nil,
+            pixelW: asset.pixelWidth,
+            pixelH: asset.pixelHeight,
+            isFavorite: asset.isFavorite,
+            isHidden: asset.isHidden,
+            hasAdjustments: asset.hasAdjustments,
+            estBytes: estimatedBytes(for: asset)
+        )
+        try store.upsertLibraryAsset(upsert, seenAt: now)
+    }
+
+    /// docs/CONTEXT.md §7.1: "First run: fetch all assets... store them in
+    /// library_assets, and save the PHPersistentChangeToken. Later runs:
+    /// fetchPersistentChanges(since:)... apply inserts, updates, and deletes. Fall
+    /// back to a full re-fetch if the token has expired."
+    private static func performSync() throws -> SyncResult {
+        let store = try IndexStore(path: indexStorePath())
+        let deviceId = DeviceIdentity.stableId()
+        let now = Int64(Date().timeIntervalSince1970)
+        let library = PHPhotoLibrary.shared()
+
+        if let encoded = try store.getMeta(metaChangeTokenKey), let token = decodeToken(encoded) {
+            do {
+                let fetchResult = try library.fetchPersistentChanges(since: token)
+                var insertedIds = Set<String>()
+                var updatedIds = Set<String>()
+                var deletedIds = Set<String>()
+                for change in fetchResult {
+                    guard let details = try? change.changeDetails(for: .asset) else { continue }
+                    insertedIds.formUnion(details.insertedLocalIdentifiers)
+                    updatedIds.formUnion(details.updatedLocalIdentifiers)
+                    deletedIds.formUnion(details.deletedLocalIdentifiers)
+                }
+
+                let toFetch = insertedIds.union(updatedIds)
+                if !toFetch.isEmpty {
+                    let assets = PHAsset.fetchAssets(withLocalIdentifiers: Array(toFetch), options: nil)
+                    assets.enumerateObjects { asset, _, _ in
+                        try? upsert(asset, into: store, deviceId: deviceId, now: now)
+                    }
+                }
+                for id in deletedIds {
+                    try store.markLibraryAssetRemoved(localId: id, removedAt: now)
+                }
+
+                try store.setMeta(metaChangeTokenKey, encodeToken(library.currentChangeToken))
+                return SyncResult(added: insertedIds.count, changed: updatedIds.count, removed: deletedIds.count)
+            } catch {
+                // docs/CONTEXT.md §7.1: token expired or otherwise unusable -> full re-fetch.
+                return try fullSync(store: store, deviceId: deviceId, now: now, library: library)
+            }
+        }
+
+        return try fullSync(store: store, deviceId: deviceId, now: now, library: library)
+    }
+
+    private static func fullSync(store: IndexStore, deviceId: String, now: Int64, library: PHPhotoLibrary) throws -> SyncResult {
+        let all = PHAsset.fetchAssets(with: nil)
+        all.enumerateObjects { asset, _, _ in
+            try? upsert(asset, into: store, deviceId: deviceId, now: now)
+        }
+        try store.setMeta(metaChangeTokenKey, encodeToken(library.currentChangeToken))
+        return SyncResult(added: all.count, changed: 0, removed: 0)
     }
 }

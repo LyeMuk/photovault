@@ -19,6 +19,16 @@ export default function Home() {
     queryFn: () => PhotoLibrary.requestAuthorization(),
   });
 
+  // docs/CONTEXT.md §7.1: keeps PhotoVaultKit's IndexStore (library_assets +
+  // last_change_token) current. Silent/background — nothing in this screen
+  // depends on its result, it just needs to run.
+  useQuery({
+    queryKey: ["librarySync"],
+    queryFn: () => PhotoLibrary.syncLibrary(),
+    enabled: authQuery.isSuccess,
+    staleTime: 0,
+  });
+
   const driveQuery = useQuery({ queryKey: ["drive"], queryFn: () => Drive.getDrive() });
   const summaryQuery = useQuery({
     queryKey: ["librarySummary"],
